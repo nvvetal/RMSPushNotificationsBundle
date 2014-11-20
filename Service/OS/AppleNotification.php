@@ -6,6 +6,10 @@ use RMS\PushNotificationsBundle\Exception\InvalidMessageTypeException,
     RMS\PushNotificationsBundle\Message\AppleMessage,
     RMS\PushNotificationsBundle\Message\MessageInterface;
 
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use RMS\PushNotificationsBundle\Event\FilterNotificationErrorEvent;
+use RMS\PushNotificationsBundle\Events;
+
 class AppleNotification implements OSNotificationServiceInterface
 {
     /**
@@ -65,13 +69,20 @@ class AppleNotification implements OSNotificationServiceInterface
     protected $responses = array();
 
     /**
+     * Symfony2 EventDispatcher
+     *
+     * @var EventDispatcher EventDispatcher
+     */
+    protected $eventDispatcher;
+
+    /**
      * Constructor
      *
      * @param $sandbox
      * @param $pem
      * @param $passphrase
      */
-    public function __construct($sandbox, $pem, $passphrase = "", $jsonUnescapedUnicode = FALSE)
+    public function __construct($sandbox, $pem, $passphrase = "", $jsonUnescapedUnicode = FALSE, $eventDispatcher)
     {
         $this->useSandbox = $sandbox;
         $this->pem = $pem;
@@ -80,6 +91,7 @@ class AppleNotification implements OSNotificationServiceInterface
         $this->messages = array();
         $this->lastMessageId = -1;
         $this->jsonUnescapedUnicode = $jsonUnescapedUnicode;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -115,8 +127,11 @@ class AppleNotification implements OSNotificationServiceInterface
 
         $messageId = ++$this->lastMessageId;
         $this->messages[$messageId] = $this->createPayload($messageId, $message->getExpiry(), $message->getDeviceIdentifier(), $message->getMessageBody());
-        $errors = $this->sendMessages($messageId, $apnURL);
-
+        if(count($errors) > 0){
+          $errors = $this->sendMessages($messageId, $apnURL);
+          $event = new FilterNotificationErrorEvent($message, $errors);
+          $this->eventDispatcher->dispatch(Events::NOTIFICATION_ERROR, $event);
+        }
         return !$errors;
     }
 
