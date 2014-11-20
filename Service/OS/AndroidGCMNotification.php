@@ -119,9 +119,9 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
 
         // Determine success
         foreach ($this->responses as $response) {
-            $message = json_decode($response->getContent());
-            if ($message === null || $message->success == 0 || $message->failure > 0) {
-                $event = new FilterNotificationErrorEvent($this, $message);
+            $messageResponse = json_decode($response->getContent());
+            if ($messageResponse === null || $messageResponse->success == 0 || $messageResponse->failure > 0) {
+                $event = new FilterNotificationErrorEvent($message, $messageResponse);
                 $this->eventDispatcher->dispatch(Events::NOTIFICATION_ERROR, $event);
                 return false;
             }
