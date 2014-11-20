@@ -30,7 +30,7 @@ class FilterNotificationErrorEvent extends Event
     /**
     * @return string|null
     */
-    public function getMessage()
+    public function getResponse()
     {
       return is_null($this->response) ? null : json_encode($this->response);
     }
