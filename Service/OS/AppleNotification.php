@@ -127,8 +127,8 @@ class AppleNotification implements OSNotificationServiceInterface
 
         $messageId = ++$this->lastMessageId;
         $this->messages[$messageId] = $this->createPayload($messageId, $message->getExpiry(), $message->getDeviceIdentifier(), $message->getMessageBody());
+        $errors = $this->sendMessages($messageId, $apnURL);
         if(count($errors) > 0){
-          $errors = $this->sendMessages($messageId, $apnURL);
           $event = new FilterNotificationErrorEvent($message, $errors);
           $this->eventDispatcher->dispatch(Events::NOTIFICATION_ERROR, $event);
         }
