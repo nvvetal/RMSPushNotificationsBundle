@@ -9,6 +9,9 @@ use Buzz\Browser,
     Buzz\Client\AbstractCurl,
     Buzz\Client\Curl,
     Buzz\Client\MultiCurl;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use RMS\PushNotificationsBundle\Event\FilterNotificationErrorEvent;
+use RMS\PushNotificationsBundle\Events;
 
 class AndroidGCMNotification implements OSNotificationServiceInterface
 {
@@ -48,13 +51,21 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
     protected $responses;
 
     /**
+     * Symfony2 EventDispatcher
+     *
+     * @var EventDispatcher EventDispatcher
+     */
+    protected $eventDispatcher;
+
+    /**
      * Constructor
      *
      * @param $apiKey
      * @param bool         $useMultiCurl
+     * @param EventDispatcher $eventDispatcher
      * @param AbstractCurl $client       (optional)
      */
-    public function __construct($apiKey, $useMultiCurl, AbstractCurl $client = null)
+    public function __construct($apiKey, $useMultiCurl, $eventDispatcher, AbstractCurl $client = null)
     {
         $this->apiKey = $apiKey;
         if (!$client) {
@@ -62,6 +73,7 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
         }
         $this->browser = new Browser($client);
         $this->browser->getClient()->setVerifyPeer(false);
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -109,6 +121,8 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
         foreach ($this->responses as $response) {
             $message = json_decode($response->getContent());
             if ($message === null || $message->success == 0 || $message->failure > 0) {
+                $event = new FilterNotificationErrorEvent($this, $message);
+                $this->eventDispatcher->dispatch(Events::NOTIFICATION_ERROR, $event);
                 return false;
             }
         }
