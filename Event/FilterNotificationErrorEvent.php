@@ -41,7 +41,7 @@ class FilterNotificationErrorEvent extends Event
     /**
     * @return string|null
     */
-    public function getReponseContent()
+    public function getResponseContent()
     {
       return $this->responseContent;
     }
